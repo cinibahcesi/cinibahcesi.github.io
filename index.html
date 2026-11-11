@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Çini Bahçesi</title>
+<meta name="description" content="Çini Bahçesi: Türk çini motifleriyle sakin, reklamsız bir taş eşleştirme bulmacası.">
+<meta name="theme-color" content="#10223f">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+  <section id="menu" class="screen active">
+    <div class="logo">
+      <div class="logo-tiles" id="logoTiles"></div>
+      <h1>Çini<span>Bahçesi</span></h1>
+      <p class="tag">Sakin bir taş eşleştirme bulmacası</p>
+    </div>
+    <button class="btn primary big" id="btnPlay">Oyna<small id="playSub">Seviye 1</small></button>
+    <button class="btn big" id="btnDaily">Günlük Bulmaca<small id="dailySub"></small></button>
+    <div class="menu-row">
+      <button class="btn" id="btnHow">Nasıl Oynanır</button>
+      <button class="btn" id="btnSettings">Ayarlar</button>
+    </div>
+    <div class="stats" id="stats"></div>
+    <a class="privacy" href="privacy.html">Gizlilik Politikası</a>
+  </section>
+
+  <section id="game" class="screen">
+    <header class="bar">
+      <button class="icon-btn" id="btnBack" aria-label="Ana menü">
+        <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="title"><b id="gTitle"></b><span id="gInfo"></span></div>
+      <button class="icon-btn" id="btnGSettings" aria-label="Ayarlar">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+      </button>
+    </header>
+    <div id="trayWrap"><div id="tray"></div></div>
+    <div id="boardWrap"><div id="board"></div><div id="toast"></div></div>
+    <footer class="tools">
+      <button class="tool" id="btnUndo">
+        <svg viewBox="0 0 24 24"><path d="M9 7L4 12l5 5M4.5 12H14a6 6 0 010 12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" transform="translate(0 -3)"/></svg>
+        Geri Al<i class="badge" id="bUndo">3</i></button>
+      <button class="tool" id="btnHint">
+        <svg viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 00-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0012 3z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        İpucu<i class="badge" id="bHint">3</i></button>
+      <button class="tool" id="btnShuffle">
+        <svg viewBox="0 0 24 24"><path d="M3 7h4c4 0 6 10 10 10h4M3 17h4c1.6 0 2.8-1.6 3.9-3.6M13.1 9.6C14.2 7.6 15.4 7 17 7h4M18 4l3 3-3 3M18 14l3 3-3 3" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Karıştır<i class="badge" id="bShuffle">2</i></button>
+    </footer>
+  </section>
+</div>
+<div id="modal" class="modal hidden"><div class="card" id="modalCard"></div></div>
+<script src="game.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
