@@ -12,7 +12,8 @@ var LS = {
   set: function (k, v) { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
 };
 var settings = Object.assign({ sound: true, vib: true, guide: true }, LS.get('cb_set', {}));
-var prog = Object.assign({ level: 1, stars: {}, daily: {} }, LS.get('cb_prog', {}));
+function freshProg() { return { level: 1, stars: {}, daily: {}, matches: 0, wins: 0, perfect: 0, maxCombo: 0, bestStreak: 0, fast: 0, coll: {}, ach: {} }; }
+var prog = Object.assign(freshProg(), LS.get('cb_prog', {}));
 var G = null, els = {}, hintIds = [], timer = null, busy = false, combo = 0, lastMatch = 0, boardVars = {};
 
 // eski (kutucuksuz) sürümden kalan yarım oyunları temizle
@@ -23,25 +24,156 @@ function saveProg() { LS.set('cb_prog', prog); }
 function saveSet() { LS.set('cb_set', settings); document.body.classList.toggle('noguide', !settings.guide); }
 
 // ---------- ses & titreşim
-var ac = null;
+// Sesler Web Audio ile üretilir (dosya yok). Çini/seramik tınısı için temel nota + uyumsuz üst
+// harmonikler (×2.76, ×5.4) hızlı sönümle çalınır; eşleşmede çan gibi uzun bir akor duyulur.
+var ac = null, master = null;
+function audio() {
+  if (!ac) {
+    ac = new (window.AudioContext || window.webkitAudioContext)();
+    master = ac.createDynamicsCompressor(); master.connect(ac.destination);
+  }
+  if (ac.state === 'suspended') ac.resume();
+  return ac;
+}
+// tek bir "tını": f = frekans, t0 = başlangıç, vol = ses, dur = sönüm süresi, parts = [oran, ağırlık] listesi
+function ring(f, t0, vol, dur, parts, type) {
+  parts.forEach(function (p) {
+    var o = ac.createOscillator(), g = ac.createGain();
+    o.type = type || 'sine'; o.frequency.value = f * p[0];
+    var d = dur / Math.sqrt(p[0]);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(vol * p[1], t0 + 0.006);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + d);
+    o.connect(g); g.connect(master); o.start(t0); o.stop(t0 + d + 0.05);
+  });
+}
+var CLINK = [[1, 1], [2.76, 0.45], [5.4, 0.18]], BELL = [[1, 1], [2, 0.35], [3.01, 0.2], [4.2, 0.08]];
+var SCALE = [0, 2, 4, 7, 9, 12, 14, 16, 19, 21, 24]; // pentatonik: kombolar yükseldikçe kulağa hoş gelir
 function sfx(kind, n) {
   if (!settings.sound) return;
   try {
-    ac = ac || new (window.AudioContext || window.webkitAudioContext)();
-    var notes = { tap: [620], no: [170], match: [523, 784], win: [523, 659, 784, 1047], lose: [392, 330, 262] }[kind];
-    var shift = kind === 'match' ? Math.min((n || 1) - 1, 7) : 0, now = ac.currentTime;
-    notes.forEach(function (f, i) {
-      var o = ac.createOscillator(), g = ac.createGain(), t0 = now + i * (kind === 'lose' ? 0.16 : 0.09);
-      o.type = kind === 'no' || kind === 'lose' ? 'triangle' : 'sine';
-      o.frequency.value = f * Math.pow(2, shift / 12);
-      g.gain.setValueAtTime(0.0001, t0);
-      g.gain.exponentialRampToValueAtTime(kind === 'tap' ? 0.07 : 0.16, t0 + 0.012);
-      g.gain.exponentialRampToValueAtTime(0.0001, t0 + (kind === 'win' || kind === 'lose' ? 0.5 : 0.25));
-      o.connect(g); g.connect(ac.destination); o.start(t0); o.stop(t0 + 0.6);
-    });
+    audio(); var now = ac.currentTime + 0.01;
+    if (kind === 'tap') ring(1320 + Math.random() * 120, now, 0.08, 0.14, CLINK);
+    else if (kind === 'no') { ring(150, now, 0.16, 0.18, [[1, 1], [1.5, 0.3]], 'triangle'); ring(142, now + 0.09, 0.12, 0.2, [[1, 1]], 'triangle'); }
+    else if (kind === 'match') {
+      var st = SCALE[Math.min((n || 1) - 1, SCALE.length - 1)], f = 523.25 * Math.pow(2, st / 12);
+      ring(f, now, 0.15, 0.9, BELL); ring(f * 1.5, now + 0.07, 0.1, 0.8, BELL); ring(f * 2, now + 0.13, 0.05, 0.6, CLINK);
+    }
+    else if (kind === 'warn') { ring(880, now, 0.07, 0.15, CLINK, 'triangle'); ring(880, now + 0.16, 0.07, 0.15, CLINK, 'triangle'); }
+    else if (kind === 'win') [523.25, 659.25, 783.99, 1046.5, 1318.5].forEach(function (f, i) { ring(f, now + i * 0.11, 0.14, 1.4, BELL); });
+    else if (kind === 'lose') [392, 349.2, 311.1, 261.6].forEach(function (f, i) { ring(f, now + i * 0.17, 0.13, 0.7, [[1, 1], [2, 0.2]], 'triangle'); });
+    else if (kind === 'badge') [783.99, 1174.7, 1568].forEach(function (f, i) { ring(f, now + i * 0.09, 0.1, 1.1, BELL); });
+    else if (kind === 'shuffle') for (var i = 0; i < 6; i++) ring(900 + Math.random() * 900, now + i * 0.045, 0.05, 0.1, CLINK);
   } catch (e) {}
 }
 function vib(ms) { if (settings.vib && navigator.vibrate) try { navigator.vibrate(ms); } catch (e) {} }
+
+// ---------- görsel efektler
+var FX_COLORS = ['#ebc56b', '#f6dc8f', '#ffffff'];
+function sparkle(rect, color) {
+  var cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2, n = 12;
+  for (var i = 0; i < n; i++) {
+    var p = document.createElement('i'), a = (i / n) * Math.PI * 2 + Math.random() * 0.4, d = 34 + Math.random() * 34;
+    p.className = 'spark' + (i % 3 === 0 ? ' star' : '');
+    p.style.left = cx + 'px'; p.style.top = cy + 'px';
+    p.style.background = i % 2 ? color : FX_COLORS[i % 3];
+    p.style.setProperty('--dx', Math.cos(a) * d + 'px'); p.style.setProperty('--dy', Math.sin(a) * d + 'px');
+    document.body.appendChild(p);
+    setTimeout(p.remove.bind(p), 650);
+  }
+}
+function floatText(msg, big) {
+  var w = $('#boardWrap'), f = document.createElement('div');
+  f.className = 'floattxt' + (big ? ' big' : ''); f.textContent = msg; w.appendChild(f);
+  setTimeout(function () { f.remove(); }, 1000);
+}
+function confetti() {
+  var cv = document.createElement('canvas'), W = innerWidth, H = innerHeight, dpr = Math.min(devicePixelRatio || 1, 2);
+  cv.className = 'confetti'; cv.width = W * dpr; cv.height = H * dpr; document.body.appendChild(cv);
+  var x = cv.getContext('2d'); x.scale(dpr, dpr);
+  var cols = CB.SUITS.map(function (s) { return s.color; }).concat(['#ebc56b', '#f6dc8f', '#ffffff', '#2fd3ad']), P = [];
+  for (var i = 0; i < 140; i++) P.push({ x: W / 2 + (Math.random() - 0.5) * W * 0.3, y: H * 0.35, vx: (Math.random() - 0.5) * 13,
+    vy: -6 - Math.random() * 11, s: 5 + Math.random() * 6, r: Math.random() * 6, vr: (Math.random() - 0.5) * 0.4,
+    c: cols[i % cols.length], k: i % 4 });
+  var t0 = performance.now();
+  (function step(now) {
+    var el = now - t0; x.clearRect(0, 0, W, H);
+    P.forEach(function (p) {
+      p.vy += 0.32; p.vx *= 0.985; p.x += p.vx; p.y += p.vy; p.r += p.vr;
+      x.save(); x.translate(p.x, p.y); x.rotate(p.r); x.globalAlpha = Math.max(0, 1 - el / 2600); x.fillStyle = p.c;
+      if (p.k === 0) { x.beginPath(); x.arc(0, 0, p.s / 2, 0, 7); x.fill(); }
+      else if (p.k === 1) { x.fillRect(-p.s / 2, -p.s / 2, p.s, p.s); x.rotate(Math.PI / 4); x.fillRect(-p.s / 2, -p.s / 2, p.s, p.s); }
+      else x.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2);
+      x.restore();
+    });
+    if (el < 2600) requestAnimationFrame(step); else cv.remove();
+  })(t0);
+}
+
+// ---------- başarımlar (rozetler) ve koleksiyon
+function collectedTypes() { var n = 0; for (var k in prog.coll) if (prog.coll[k] > 0) n++; return n; }
+function collectedMotifs() { var m = {}; for (var k in prog.coll) if (prog.coll[k] > 0) m[k % 12] = 1; return Object.keys(m).length; }
+function dailyCount() { return Object.keys(prog.daily).length; }
+var ACH = [
+  { id: 'ilk', i: '🌱', n: 'İlk Fidan', d: 'İlk seviyeyi tamamla', t: function () { return prog.level > 1; } },
+  { id: 's10', i: '🌷', n: 'Çırak', d: '10 seviye tamamla', t: function () { return prog.level > 10; } },
+  { id: 's25', i: '🏺', n: 'Kalfa', d: '25 seviye tamamla', t: function () { return prog.level > 25; } },
+  { id: 's50', i: '🎖️', n: 'Usta', d: '50 seviye tamamla', t: function () { return prog.level > 50; } },
+  { id: 's100', i: '👑', n: 'Üstat', d: '100 seviye tamamla', t: function () { return prog.level > 100; } },
+  { id: 'm100', i: '✨', n: 'Yüz Eşleşme', d: 'Toplam 100 çift eşleştir', t: function () { return prog.matches >= 100; } },
+  { id: 'm1000', i: '💎', n: 'Bin Eşleşme', d: 'Toplam 1000 çift eşleştir', t: function () { return prog.matches >= 1000; } },
+  { id: 'kombo', i: '🔥', n: 'Kombo Ustası', d: 'Art arda ×8 kombo yap', t: function () { return prog.maxCombo >= 8; } },
+  { id: 'kusursuz', i: '⭐', n: 'Kusursuz', d: 'Bir bölümü yardımcı kullanmadan bitir', t: function () { return prog.perfect >= 1; } },
+  { id: 'yagmur', i: '🌟', n: 'Yıldız Yağmuru', d: '10 bölümü yardımcı kullanmadan bitir', t: function () { return prog.perfect >= 10; } },
+  { id: 'cevik', i: '⚡', n: 'Çevik El', d: '30 taştan büyük bir bölümü 1 dakikadan kısa sürede bitir', t: function () { return prog.fast >= 1; } },
+  { id: 'gunluk', i: '📅', n: 'Günün Bulmacası', d: 'İlk günlük bulmacanı çöz', t: function () { return dailyCount() >= 1; } },
+  { id: 'hafta', i: '🗓️', n: 'Bir Hafta', d: '7 gün üst üste günlük bulmaca çöz', t: function () { return prog.bestStreak >= 7; } },
+  { id: 'motif', i: '🎨', n: 'Motif Avcısı', d: '12 farklı motifin hepsini topla', t: function () { return collectedMotifs() >= 12; } },
+  { id: 'koleksiyon', i: '🏆', n: 'Koleksiyoncu', d: '36 taşın hepsini topla', t: function () { return collectedTypes() >= 36; } }
+];
+var bannerQ = [], bannerOn = false;
+function banner(icon, title, sub) { bannerQ.push([icon, title, sub]); if (!bannerOn) nextBanner(); }
+function nextBanner() {
+  var b = bannerQ.shift(); if (!b) { bannerOn = false; return; }
+  bannerOn = true;
+  var el = document.createElement('div'); el.className = 'banner';
+  el.innerHTML = '<span class="bi">' + b[0] + '</span><span><b>' + b[1] + '</b><small>' + b[2] + '</small></span>';
+  document.body.appendChild(el);
+  requestAnimationFrame(function () { el.classList.add('show'); });
+  setTimeout(function () { el.classList.remove('show'); setTimeout(function () { el.remove(); nextBanner(); }, 300); }, bannerQ.length ? 1300 : 2300);
+}
+function checkAch() {
+  var got = 0;
+  ACH.forEach(function (a) {
+    if (!prog.ach[a.id] && a.t()) { prog.ach[a.id] = CB.dayKey(); got++; banner(a.i, 'Rozet kazandın: ' + a.n, a.d); }
+  });
+  if (got) { saveProg(); setTimeout(function () { sfx('badge'); vib([20, 40, 20]); }, 150); }
+  return got;
+}
+function motifName(t) { var m = CB.MOTIF_KEYS[t % 12]; return CB.MOTIF_INFO[m][0]; }
+function suitName(t) { return CB.SUITS[CB.suitOf(t)].name; }
+
+function showBadges() {
+  var n = Object.keys(prog.ach).length, h = '<h2>Rozetler</h2><p class="sub">' + n + ' / ' + ACH.length + ' rozet</p><div class="badges">';
+  ACH.forEach(function (a) {
+    var on = !!prog.ach[a.id];
+    h += '<div class="bdg' + (on ? '' : ' off') + '"><span class="bi">' + (on ? a.i : '🔒') + '</span><span><b>' + a.n + '</b><small>' + a.d + '</small></span></div>';
+  });
+  modal(h + '</div>', [{ label: 'Kapat', cls: 'primary' }]);
+}
+function showCollection() {
+  var h = '<h2>Koleksiyon</h2><p class="sub">' + collectedTypes() + ' / 36 taş · eşleştirdiğin her yeni taş albüme girer</p><div class="album">';
+  CB.MOTIF_KEYS.forEach(function (key, m) {
+    var info = CB.MOTIF_INFO[key], any = false, tiles = '';
+    for (var s = 0; s < 3; s++) {
+      var t = CB.typeOf(m, s), c = prog.coll[t] || 0; if (c) any = true;
+      tiles += '<div class="ctile-wrap"><div class="tile ctile' + (c ? '' : ' locked') + '">' + CB.faceSVG(t) + '</div><small>' + (c ? '×' + c : '?') + '</small></div>';
+    }
+    h += '<div class="arow' + (any ? '' : ' off') + '"><div class="atiles">' + tiles + '</div><div class="atext"><b>' + (any ? info[0] : 'Gizli motif') +
+      '</b><small>' + (any ? info[1] : 'Bu motifi eşleştirerek açabilirsin.') + '</small></div></div>';
+  });
+  modal(h + '</div>', [{ label: 'Kapat', cls: 'primary' }]);
+}
 
 var toastT = null;
 function toast(msg) {
@@ -78,6 +210,8 @@ function showMenu() {
   var s = streak();
   $('#stats').innerHTML = 'Tamamlanan seviye: <b>' + (prog.level - 1) + '</b> · Yıldız: <b>' + stars + '</b>' +
     (s ? '<br>Günlük seri: <b>' + s + ' gün</b>' : '');
+  $('#collSub').textContent = collectedTypes() + ' / 36';
+  $('#badgeSub').textContent = Object.keys(prog.ach).length + ' / ' + ACH.length;
 }
 
 function playLevel(n) {
@@ -205,7 +339,7 @@ function tap(id) {
     var d = els[id]; d.classList.remove('shake'); void d.offsetWidth; d.classList.add('shake');
     sfx('no'); toast(why === 'ust' ? 'Bu taşın üstü kapalı' : 'Önce sağındaki ya da solundaki taşı al'); return;
   }
-  busy = true; sfx('tap');
+  busy = true; sfx('tap'); vib(8);
   var partner = null;
   for (var i = 0; i < G.tray.length; i++) if (G.tiles[G.tray[i]].t === t.t) { partner = G.tray[i]; break; }
   var target = slotRect(G.tray.length);
@@ -216,11 +350,18 @@ function tap(id) {
       G.tray.splice(pi, 1); t.st = 'gone'; G.tiles[partner].st = 'gone';
       G.hist.push({ id: id, m: partner });
       renderTray(); popAt(pr, t.t); popAt(target, t.t);
+      var col = CB.SUITS[CB.suitOf(t.t)].color; sparkle(pr, col); sparkle(target, col);
       var now = Date.now(); combo = now - lastMatch < 4000 ? combo + 1 : 1; lastMatch = now;
-      toast(combo >= 3 ? 'Kombo ×' + combo + '!' : ['Harika!', 'Güzel!', 'Süper!'][Math.floor(Math.random() * 3)]);
-      sfx('match', combo); vib(18);
+      if (combo >= 2) floatText('Kombo ×' + combo + '!', combo >= 4);
+      else if (Math.random() < 0.35) floatText(['Harika!', 'Güzel!', 'Süper!', 'Maşallah!'][Math.floor(Math.random() * 4)]);
+      sfx('match', combo); vib(combo >= 3 ? [15, 30, 15] : 18);
+      var first = !prog.coll[t.t];
+      prog.coll[t.t] = (prog.coll[t.t] || 0) + 1; prog.matches++; prog.maxCombo = Math.max(prog.maxCombo, combo);
+      if (first) banner('<span class="mini-face">' + CB.faceSVG(t.t) + '</span>', 'Yeni motif: ' + motifName(t.t), suitName(t.t) + ' · koleksiyona eklendi');
+      saveProg(); checkAch();
     } else {
       G.tray.push(id); G.hist.push({ id: id, m: null }); renderTray();
+      if (G.tray.length === SIZE - 1) { sfx('warn'); vib([10, 50, 10]); }
     }
     saveGame(); busy = false;
     if (!onBoard().length && !G.tray.length) setTimeout(win, 350);
@@ -275,7 +416,8 @@ function shuffleBoard() {
   if (!useBoost('shuffle', 'Karıştırma')) return;
   var types = CB.shuffle(act.map(function (t) { return t.t; }), CB.mulberry32((Date.now() ^ (Math.random() * 1e9)) | 0));
   act.forEach(function (t, i) { t.t = types[i]; els[t.id].innerHTML = CB.faceSVG(t.t); });
-  G.hist = []; clearHint(); refresh(); saveGame(); sfx('match', 1); toast('Taşlar karıştırıldı');
+  act.forEach(function (t) { var d = els[t.id]; d.classList.remove('shuffling'); void d.offsetWidth; d.classList.add('shuffling'); });
+  G.hist = []; clearHint(); refresh(); saveGame(); sfx('shuffle'); vib(20); toast('Taşlar karıştırıldı');
 }
 
 // ---------- sonuç
@@ -288,10 +430,13 @@ function win() {
     if (prog.level <= g.level) prog.level = g.level + 1;
     btns = [{ label: 'Sonraki Seviye', cls: 'primary', fn: function () { playLevel(g.level + 1); } }, { label: 'Ana Menü', fn: goMenu }];
   } else {
-    prog.daily[g.day] = true;
+    prog.daily[g.day] = true; prog.bestStreak = Math.max(prog.bestStreak, streak());
     btns = [{ label: 'Ana Menü', cls: 'primary', fn: goMenu }];
   }
-  saveProg(); sfx('win'); vib([30, 60, 30]);
+  prog.wins++; if (!used) prog.perfect++;
+  if (g.tiles.length > 30 && g.time < 60) prog.fast++;
+  saveProg(); sfx('win'); vib([30, 60, 30]); confetti();
+  setTimeout(checkAch, 600);
   var st = ''; for (var i = 0; i < 3; i++) st += '<span class="' + (i < stars ? '' : 'off') + '">★</span>';
   modal('<h2>Tebrikler!</h2><div class="stars">' + st + '</div><p><b>' + g.cfg.title + '</b> · ' + g.cfg.sub +
     '<br>Süre: ' + fmt(g.time) + (used ? '<br><small>Yardımcı kullanmadan bitirirsen 3 yıldız alırsın.</small>' : '') + '</p>' +
@@ -321,16 +466,16 @@ function howTo() {
 function openSettings() {
   function row(key, label) { return '<label class="sw"><span>' + label + '</span><input type="checkbox" data-k="' + key + '"' + (settings[key] ? ' checked' : '') + '></label>'; }
   modal('<h2>Ayarlar</h2>' + row('sound', 'Ses efektleri') + row('vib', 'Titreşim') + row('guide', 'Kapalı taşları soluk göster') +
-    '<p class="ver">Çini Bahçesi · sürüm 1.2.0</p>',
+    '<p class="ver">Çini Bahçesi · sürüm 1.3.0</p>',
     [{ label: 'Tamam', cls: 'primary' }, { label: 'Nasıl Oynanır', fn: howTo }, { label: 'İlerlemeyi Sıfırla', cls: 'danger', fn: confirmReset }]);
   document.querySelectorAll('#modalCard input[data-k]').forEach(function (inp) {
     inp.onchange = function () { settings[inp.dataset.k] = inp.checked; saveSet(); };
   });
 }
 function confirmReset() {
-  modal('<h2>Emin misin?</h2><p>Tüm seviyeler, yıldızlar ve günlük seri silinecek. Bu işlem geri alınamaz.</p>',
+  modal('<h2>Emin misin?</h2><p>Tüm seviyeler, yıldızlar, günlük seri, rozetler ve koleksiyon silinecek. Bu işlem geri alınamaz.</p>',
     [{ label: 'Vazgeç', cls: 'primary' }, { label: 'Evet, sıfırla', cls: 'danger', fn: function () {
-      prog = { level: 1, stars: {}, daily: {} }; saveProg(); LS.set('cb_g_level', null); LS.set('cb_g_daily', null); showMenu(); } }]);
+      prog = freshProg(); saveProg(); LS.set('cb_g_level', null); LS.set('cb_g_daily', null); showMenu(); } }]);
 }
 
 // ---------- başlat
@@ -344,6 +489,8 @@ function init() {
   $('#btnPlay').onclick = function () { playLevel(prog.level); };
   $('#btnDaily').onclick = playDaily;
   $('#btnHow').onclick = howTo;
+  $('#btnColl').onclick = showCollection;
+  $('#btnBadges').onclick = showBadges;
   $('#btnSettings').onclick = openSettings;
   $('#btnGSettings').onclick = openSettings;
   $('#btnBack').onclick = goMenu;

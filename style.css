@@ -52,16 +52,16 @@ svg { display: block; }
 .title span { font-size: 14px; color: var(--muted); }
 #boardWrap { flex: 1; position: relative; overflow: hidden; }
 #board { position: absolute; }
-.tools { display: flex; gap: 10px; padding: 10px 12px calc(12px + env(safe-area-inset-bottom)); background: rgba(0, 0, 0, .2); }
+.tools { display: flex; justify-content: center; gap: 8px; padding: 6px 12px calc(8px + env(safe-area-inset-bottom)); background: rgba(0, 0, 0, .2); }
 .tool {
-  flex: 1; border: 0; border-radius: 16px; background: rgba(255, 255, 255, .1); color: var(--text);
-  padding: 8px 4px 9px; font-size: 15px; font-weight: 600; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer;
+  flex: 0 1 104px; border: 0; border-radius: 12px; background: rgba(255, 255, 255, .1); color: var(--text);
+  padding: 5px 4px 5px; font-size: 12.5px; font-weight: 600; display: flex; flex-direction: column; align-items: center; gap: 1px; cursor: pointer;
 }
-.tool svg { width: 28px; height: 28px; }
+.tool svg { width: 20px; height: 20px; }
 .tool { position: relative; }
 .badge {
-  position: absolute; top: 4px; right: calc(50% - 34px); min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px;
-  background: #d9402f; color: #fff; font: 700 13px/22px "Segoe UI", Roboto, sans-serif; font-style: normal; box-shadow: 0 1px 3px rgba(0,0,0,.4);
+  position: absolute; top: 2px; right: calc(50% - 26px); min-width: 17px; height: 17px; padding: 0 4px; border-radius: 9px;
+  background: #d9402f; color: #fff; font: 700 11px/17px "Segoe UI", Roboto, sans-serif; font-style: normal; box-shadow: 0 1px 3px rgba(0,0,0,.4);
 }
 .tool.empty { opacity: .45; }
 .tool.empty .badge { background: #6b7385; }
@@ -94,7 +94,7 @@ svg { display: block; }
   box-shadow: var(--e1) var(--e1) 0 #d6c294, var(--e2) var(--e2) 0 var(--teal), var(--e3) var(--e4) var(--e3) rgba(0, 0, 0, .38);
   transition: filter .2s, transform .12s;
 }
-.tile svg { position: absolute; left: 6%; top: 5%; width: 88%; height: 90%; pointer-events: none; }
+.tile svg { position: absolute; left: 4%; top: 3.5%; width: 92%; height: 93%; pointer-events: none; filter: drop-shadow(0 .6px .4px rgba(0, 0, 0, .35)); }
 .tile.blocked { filter: brightness(.74) saturate(.65); }
 body.noguide .tile.blocked { filter: none; }
 .tile.sel { background: linear-gradient(155deg, #fff7cf, #f5d97f); transform: translate(-3%, -2%); }
@@ -123,3 +123,55 @@ body.noguide .tile.blocked { filter: none; }
 .sw { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 4px; border-bottom: 1px solid #e3d9c0; font-size: 18px; text-align: left; }
 .sw input { width: 26px; height: 26px; accent-color: #0f8069; flex: none; }
 .ver { color: #6b7385; font-size: 14px !important; }
+.card .sub { color: #5b6478; font-size: 15px; margin-top: -4px; }
+
+/* ---------- efektler */
+.spark {
+  position: fixed; z-index: 9200; width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; border-radius: 50%; pointer-events: none;
+  box-shadow: 0 0 6px rgba(255, 230, 150, .9); animation: spark .6s cubic-bezier(.2,.7,.3,1) forwards;
+}
+.spark.star { border-radius: 1px; transform: rotate(45deg); width: 8px; height: 8px; }
+@keyframes spark { from { transform: translate(0, 0) scale(1.2); opacity: 1; } to { transform: translate(var(--dx), var(--dy)) scale(.2); opacity: 0; } }
+.floattxt {
+  position: absolute; left: 50%; top: 42%; z-index: 99990; pointer-events: none; white-space: nowrap;
+  font: italic 700 30px Georgia, serif; color: #f6dc8f; text-shadow: 0 2px 0 #8a5a12, 0 4px 14px rgba(0, 0, 0, .6);
+  animation: floatup 1s ease-out forwards;
+}
+.floattxt.big { font-size: 40px; color: #ffe9a8; }
+@keyframes floatup {
+  0% { transform: translate(-50%, 10px) scale(.6); opacity: 0; } 18% { transform: translate(-50%, 0) scale(1.08); opacity: 1; }
+  70% { opacity: 1; } 100% { transform: translate(-50%, -46px) scale(1); opacity: 0; }
+}
+.confetti { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 100001; pointer-events: none; }
+.tile.shuffling { animation: shufl .45s ease-out; }
+@keyframes shufl { 0% { transform: scale(1); } 40% { transform: scale(.82) rotate(-6deg); } 100% { transform: scale(1); } }
+.banner {
+  position: fixed; left: 50%; top: calc(10px + env(safe-area-inset-top)); z-index: 100002; transform: translate(-50%, -140%);
+  display: flex; align-items: center; gap: 10px; padding: 9px 16px 9px 10px; border-radius: 16px; width: max-content; max-width: calc(100% - 24px);
+  background: linear-gradient(180deg, #fffaf0, #f3e6c4); color: #13294b; border: 2px solid #d9a64a; box-shadow: 0 8px 24px rgba(0, 0, 0, .4);
+  transition: transform .3s cubic-bezier(.3,1.4,.5,1); pointer-events: none;
+}
+.banner.show { transform: translate(-50%, 0); }
+.banner b { display: block; font-size: 16px; }
+.banner small { display: block; font-size: 13px; color: #5b6478; }
+.banner .bi { font-size: 28px; line-height: 1; }
+.mini-face { display: block; width: 30px; height: 39px; border-radius: 4px; background: #fffdf7; box-shadow: 1px 1px 0 #d6c294, 2px 2px 0 var(--teal); }
+.mini-face svg { width: 100%; height: 100%; }
+
+/* ---------- rozetler & koleksiyon */
+.badges { display: flex; flex-direction: column; gap: 8px; margin: 12px 0 4px; text-align: left; }
+.bdg { display: flex; align-items: center; gap: 12px; padding: 9px 12px; border-radius: 14px; background: #f1e7cd; }
+.bdg .bi { font-size: 28px; width: 34px; text-align: center; flex: none; }
+.bdg b { display: block; font-size: 16px; }
+.bdg small { display: block; font-size: 13.5px; }
+.bdg.off { background: #ece6d6; opacity: .6; }
+.album { display: flex; flex-direction: column; gap: 10px; margin: 12px 0 4px; text-align: left; }
+.arow { display: flex; align-items: center; gap: 12px; padding: 10px; border-radius: 14px; background: #f1e7cd; }
+.arow.off { background: #ece6d6; }
+.atiles { display: flex; gap: 5px; flex: none; }
+.ctile-wrap { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.ctile-wrap small { font-size: 11px; color: #5b6478; }
+.tile.ctile { position: relative; width: 34px; height: 44px; cursor: default; --e1: 1.5px; --e2: 3px; --e3: 3px; --e4: 4px; }
+.tile.ctile.locked { filter: grayscale(1) brightness(.6) opacity(.45); }
+.atext b { display: block; font-size: 16px; color: #13294b; }
+.atext small { display: block; font-size: 13px; line-height: 1.35; }

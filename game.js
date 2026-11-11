@@ -47,7 +47,22 @@ var MOTIFS = {
         '<path d="M14 88q9-10 18 0t18 0 18 0 18 0" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round"/>'
 };
 var MOTIF_KEYS = ['lale', 'karanfil', 'nar', 'yildiz', 'servi', 'nazar', 'cay', 'kahve', 'sumbul', 'yaprak', 'rozet', 'cintemani'];
-var SUITS = [{ name: 'Lacivert', color: '#1f56a8' }, { name: 'Firuze', color: '#0f8069' }, { name: 'Mercan', color: '#c0392b' }];
+var SUITS = [{ name: 'Lacivert', color: '#1848a0' }, { name: 'Firuze', color: '#067a62' }, { name: 'Mercan', color: '#c4291b' }];
+// Koleksiyon albümünde gösterilen motif adları ve kısa açıklamaları
+var MOTIF_INFO = {
+  lale: ['Lale', 'Osmanlı sanatının en sevilen çiçeği. 18. yüzyılın başına adını veren Lale Devri\'nin simgesi.'],
+  karanfil: ['Karanfil', 'İznik çinilerinde laleyle birlikte en sık görülen çiçeklerden biri.'],
+  nar: ['Nar', 'Taneleriyle bolluğun ve bereketin simgesi sayılır.'],
+  yildiz: ['Sekiz Köşeli Yıldız', 'İç içe iki kareden oluşur. Selçuklu çinilerinin tanınmış motiflerinden.'],
+  servi: ['Servi', 'Her mevsim yeşil kalan bu ağaç, sanatta sonsuzluğu anlatır.'],
+  nazar: ['Nazar Boncuğu', 'Mavi camdan yapılır, kötü gözden korunmak için takılır.'],
+  cay: ['İnce Belli Bardak', 'Günün her saatinde demlenen Türk çayının vazgeçilmez bardağı.'],
+  kahve: ['Türk Kahvesi', 'Kültürü ve geleneği 2013\'te UNESCO\'nun somut olmayan kültürel miras listesine girdi.'],
+  sumbul: ['Sümbül', 'Kokusuyla bilinen bahar çiçeği. Çini ve kumaş desenlerinde sık kullanılır.'],
+  yaprak: ['Saz Yaprağı', 'Kıvrık, uzun hançer yaprak. Saz yolu üslubunun en bilinen öğesi.'],
+  rozet: ['Gül Rozet', 'Çevresel taç yapraklarıyla dairesel bir süsleme motifi.'],
+  cintemani: ['Çintemani', 'Üç benek ve dalgalı çizgilerden oluşur. Güç ve uğurla ilişkilendirilir.']
+};
 
 // 36 taş türü: motif = t % 12. Renk takımı, ilk 12 türün renkleri karışık olacak şekilde dağıtılır.
 function motifOf(t) { return t % 12; }
@@ -56,10 +71,10 @@ function typeOf(m, s) { for (var k = 0; k < 3; k++) { var t = k * 12 + m; if (su
 
 function faceSVG(t, standalone) {
   var s = suitOf(t), c = SUITS[s].color, dots = '';
-  for (var i = 0; i <= s; i++) dots += '<circle cx="' + (50 + (i - s / 2) * 14) + '" cy="119" r="4.5"/>';
+  for (var i = 0; i <= s; i++) dots += '<circle cx="' + (50 + (i - s / 2) * 16) + '" cy="119" r="5.5"/>';
   return '<svg ' + (standalone ? 'xmlns="http://www.w3.org/2000/svg" width="200" height="260" ' : '') +
     'viewBox="0 0 100 130" color="' + c + '" style="color:' + c + '"><g fill="currentColor">' +
-    '<g transform="translate(6 6) scale(.88)">' + MOTIFS[MOTIF_KEYS[motifOf(t)]] + '</g>' + dots + '</g></svg>';
+    '<g transform="translate(0 1) scale(1)">' + MOTIFS[MOTIF_KEYS[motifOf(t)]] + '</g>' + dots + '</g></svg>';
 }
 
 // ---------------------------------------------------------------- Tahtalar
@@ -82,12 +97,25 @@ var LAYOUTS = [
     { r: ['.##.', '####', '####', '.##.'], ox: 1, oy: 1 },
     { r: ['.#.', '###', '.#.'], ox: 2, oy: 2 },
     { r: ['#'], ox: 4, oy: 4 }] },
+  { name: 'Nar', types: 9, layers: [
+    { r: ['.#.#.', '#####', '#####', '#####', '.###.'] },
+    { r: ['####', '####', '.##.'], ox: 1, oy: 1 },
+    { r: ['##', '##'], ox: 3, oy: 2 }] },
+  { name: 'Minare', types: 10, layers: [
+    { r: ['.#.', '###', '###', '###', '###', '###', '###', '#.#'] },
+    { r: ['##', '##', '##', '##', '##', '##'], ox: 1, oy: 1 },
+    { r: ['#', '#', '#', '#', '#'], ox: 2, oy: 2 }] },
   { name: 'Köprü', types: 9, layers: [
     { r: ['#####', '#####', '#...#', '#####', '#####'] },
     { r: ['####', '####', '....', '####', '####'], ox: 1 },
     { r: ['###'], ox: 2, oy: 4 },
     { r: ['#', '#'], ox: 4, oy: 1 }] },
-  { name: 'Kule', types: 11, layers: [
+  { name: 'Kubbe', types: 11, layers: [
+    { r: ['..###..', '.#####.', '#######', '#######', '#.#.#.#'] },
+    { r: ['..##..', '.####.', '######'], ox: 1, oy: 1 },
+    { r: ['.###.', '#####'], ox: 2, oy: 2 },
+    { r: ['#'], ox: 6, oy: 3 }] },
+  { name: 'Kule', types: 12, layers: [
     { r: ['####', '####', '####', '####', '####'] },
     { r: ['####', '####', '####', '####', '####'], ox: 1, oy: 1 },
     { r: ['###', '###', '###', '###'], ox: 2, oy: 2 }] },
@@ -100,7 +128,12 @@ var LAYOUTS = [
   { name: 'Saray', types: 13, layers: [
     { r: ['#####', '#####', '#####', '#####', '#####', '#####'] },
     { r: ['####', '####', '####', '####', '####'], ox: 1, oy: 1 },
-    { r: ['###', '###', '###'], ox: 2, oy: 3 }] }
+    { r: ['###', '###', '###'], ox: 2, oy: 3 }] },
+  { name: 'Saray Bahçesi', types: 15, layers: [
+    { r: ['#.###.#', '#######', '#######', '#######', '#.###.#'] },
+    { r: ['##..##', '######', '######', '##..##'], ox: 1, oy: 1 },
+    { r: ['#####', '#.#.#', '#####'], ox: 2, oy: 2 },
+    { r: ['####', '####'], ox: 3, oy: 3 }] }
 ];
 var TRAY_SIZE = 4;
 
@@ -181,7 +214,7 @@ function dailyConfig(key) {
   return { layout: i, types: LAYOUTS[i].types + 2, seed: seed, title: 'Günlük Bulmaca', sub: trDate(key) + ' · ' + LAYOUTS[i].name };
 }
 
-window.CB = { MOTIFS: MOTIFS, MOTIF_KEYS: MOTIF_KEYS, SUITS: SUITS, LAYOUTS: LAYOUTS, TRAY_SIZE: TRAY_SIZE, faceSVG: faceSVG, typeOf: typeOf,
+window.CB = { MOTIFS: MOTIFS, MOTIF_KEYS: MOTIF_KEYS, MOTIF_INFO: MOTIF_INFO, SUITS: SUITS, suitOf: suitOf, LAYOUTS: LAYOUTS, TRAY_SIZE: TRAY_SIZE, faceSVG: faceSVG, typeOf: typeOf,
   buildPositions: buildPositions, isFree: isFree, blockReason: blockReason, deal: deal, makeDeal: makeDeal, mulberry32: mulberry32, shuffle: shuffle,
   levelConfig: levelConfig, dailyConfig: dailyConfig, dayKey: dayKey, trDate: trDate };
 })();

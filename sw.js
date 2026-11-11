@@ -1,6 +1,6 @@
 // Çini Bahçesi – çevrimdışı çalışma için önbellek.
 // Oyunu güncellediğinde aşağıdaki sürümü artır (ör. cini-v2), yoksa telefonlar eski sürümü göstermeye devam eder.
-var CACHE = 'cini-v3';
+var CACHE = 'cini-v4';
 var FILES = ['./', 'index.html', 'style.css', 'game.js', 'app.js', 'manifest.json', 'privacy.html',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png'];
 
