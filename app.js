@@ -210,8 +210,9 @@ function showMenu() {
   var s = streak();
   $('#stats').innerHTML = 'Tamamlanan seviye: <b>' + (prog.level - 1) + '</b> · Yıldız: <b>' + stars + '</b>' +
     (s ? '<br>Günlük seri: <b>' + s + ' gün</b>' : '');
-  $('#collSub').textContent = collectedTypes() + ' / 36';
-  $('#badgeSub').textContent = Object.keys(prog.ach).length + ' / ' + ACH.length;
+  // eski önbellekten gelen index.html'de bu düğmeler olmayabilir; oyun yine de açılsın
+  if ($('#collSub')) $('#collSub').textContent = collectedTypes() + ' / 36';
+  if ($('#badgeSub')) $('#badgeSub').textContent = Object.keys(prog.ach).length + ' / ' + ACH.length;
 }
 
 function playLevel(n) {
@@ -466,7 +467,7 @@ function howTo() {
 function openSettings() {
   function row(key, label) { return '<label class="sw"><span>' + label + '</span><input type="checkbox" data-k="' + key + '"' + (settings[key] ? ' checked' : '') + '></label>'; }
   modal('<h2>Ayarlar</h2>' + row('sound', 'Ses efektleri') + row('vib', 'Titreşim') + row('guide', 'Kapalı taşları soluk göster') +
-    '<p class="ver">Çini Bahçesi · sürüm 1.3.0</p>',
+    '<p class="ver">Çini Bahçesi · sürüm 1.3.1</p>',
     [{ label: 'Tamam', cls: 'primary' }, { label: 'Nasıl Oynanır', fn: howTo }, { label: 'İlerlemeyi Sıfırla', cls: 'danger', fn: confirmReset }]);
   document.querySelectorAll('#modalCard input[data-k]').forEach(function (inp) {
     inp.onchange = function () { settings[inp.dataset.k] = inp.checked; saveSet(); };
@@ -489,8 +490,8 @@ function init() {
   $('#btnPlay').onclick = function () { playLevel(prog.level); };
   $('#btnDaily').onclick = playDaily;
   $('#btnHow').onclick = howTo;
-  $('#btnColl').onclick = showCollection;
-  $('#btnBadges').onclick = showBadges;
+  if ($('#btnColl')) $('#btnColl').onclick = showCollection;
+  if ($('#btnBadges')) $('#btnBadges').onclick = showBadges;
   $('#btnSettings').onclick = openSettings;
   $('#btnGSettings').onclick = openSettings;
   $('#btnBack').onclick = goMenu;
