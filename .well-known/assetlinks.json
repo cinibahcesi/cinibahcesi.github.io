@@ -3,6 +3,6 @@
       "target": {
         "namespace": "android_app",
         "package_name": "io.github.cinibahcesi.app",
-        "sha256_cert_fingerprints": ["BF:BD:5D:79:38:42:A6:DE:58:52:8F:8E:65:98:34:26:B8:13:FF:6D:48:AD:99:BF:1A:95:41:CF:FD:BF:99:BF"]
+        "sha256_cert_fingerprints": ["BF:BD:5D:79:38:42:A6:DE:58:52:8F:8E:65:98:34:26:B8:13:FF:6D:48:AD:99:BF:1A:95:41:CF:FD:BF:99:BF", "8A:2D:4A:46:EB:E7:42:40:A6:3B:5B:C9:23:A1:C6:E2:E2:FC:7A:99:61:5B:E7:14:22:5C:13:51:5C:84:D8:CA"]
       }
     }]
